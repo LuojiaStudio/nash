@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import JSONField
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 
 
 class Department(models.Model):
@@ -12,6 +14,7 @@ class Department(models.Model):
         abstract = True
 
     name = models.CharField(max_length=15)
+    job_titles = GenericRelation('JobTitle')
 
     def __str__(self):
         return self.name
@@ -49,25 +52,23 @@ class DepartmentInCollegeStudentUnion(Department):
         return self.college_student_union + self.name
 
 
-class Position(models.Model):
+class JobTitle(models.Model):
     """
     position in department(only department in college student union and department in Wuhan University Student Union)
     """
-    department = models.ForeignKey(
-        Department,
-        on_delete=models.CASCADE,
-        related_name='position_in',
-    )
-    name = models.CharField(max_length=10)
+    department_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    department_object_id = models.PositiveIntegerField()
+    department_object = GenericForeignKey('department_type', 'department_object_id')
+    tag = models.CharField(max_length=10)
 
     def __str__(self):
-        return self.name
+        return self.department_object + self.tag
 
 
 class College(models.Model):
     name = models.CharField(max_length=20)
     faculty = models.ForeignKey(
-        Faculty,
+        'Faculty',
         related_name='college_in',
         on_delete=models.SET_NULL,
         null=True
@@ -138,16 +139,14 @@ class Staff(models.Model):
     staff in Wuhan University Student Union and College Student Union
     """
     user = models.OneToOneField(StudentUser, on_delete=models.CASCADE)
-    department = models.ForeignKey(
-        Department,
+    job_title = models.ForeignKey(
+        JobTitle,
         related_name='staff_in',
         on_delete=models.CASCADE
     )
-    position = models.ForeignKey(
-        Position,
-        related_name='staff_in',
-        on_delete=models.CASCADE
-    )
+
+    def get_department(self):
+        return self.job_title.department_object
 
     def __str__(self):
         return self.user
