@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.contrib.postgres.fields import JSONField
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
@@ -55,7 +55,9 @@ class DepartmentInCollegeStudentUnion(Department):
 class JobTitle(models.Model):
     """
     position in department(only department in college student union and department in Wuhan University Student Union)
+    using Django generic relation, see the official documentation for details
     """
+    group = models.OneToOneField(Group, null=True)
     department_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     department_object_id = models.PositiveIntegerField()
     department_object = GenericForeignKey('department_type', 'department_object_id')
@@ -79,6 +81,9 @@ class College(models.Model):
 
 
 class Faculty(models.Model):
+    """
+    [xin xi xue bu, wen li xue bu, gong xue bu, yi xue bu]
+    """
     name = models.CharField(max_length=10)
 
     def __str__(self):
@@ -113,7 +118,7 @@ class StudentUser(models.Model):
     include normal student and staff in student union
     """
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    school_id = models.CharField(max_length=15)
+    school_number = models.CharField(max_length=15)
     college = models.ForeignKey(
         College,
         related_name='user_in',
