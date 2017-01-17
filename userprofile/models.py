@@ -1,8 +1,13 @@
+import binascii
+import os
+
 from django.db import models
 from django.contrib.auth.models import User, Group
 from django.contrib.postgres.fields import JSONField
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
+from django.conf import settings
+from django.utils.translation import ugettext_lazy as _
 
 
 class Department(models.Model):
@@ -49,7 +54,7 @@ class DepartmentInCollegeStudentUnion(Department):
     )
 
     def __str__(self):
-        return self.college_student_union + self.name
+        return self.college_student_union.name + self.name
 
 
 class JobTitle(models.Model):
@@ -64,7 +69,7 @@ class JobTitle(models.Model):
     tag = models.CharField(max_length=10)
 
     def __str__(self):
-        return self.department_object + self.tag
+        return self.department_object.name + self.tag
 
 
 class College(models.Model):
@@ -110,7 +115,7 @@ class Dormitory(models.Model):
     dormitory_serial_number = models.CharField(max_length=10)
 
     def __str__(self):
-        return self.area + self.dormitory_serial_number
+        return self.area.name + self.dormitory_serial_number
 
 
 class StudentUser(models.Model):
@@ -131,9 +136,9 @@ class StudentUser(models.Model):
         on_delete=models.SET_NULL,
         null=True
     )
-    house_number = models.CharField(max_length=10)
-    personal_info = JSONField()
-    setting_info = JSONField()
+    house_number = models.CharField(max_length=10, null=True)
+    personal_info = JSONField(null=True)
+    setting_info = JSONField(null=True)
 
     def __str__(self):
         return self.user.username
@@ -154,7 +159,35 @@ class Staff(models.Model):
         return self.job_title.department_object
 
     def __str__(self):
-        return self.user
+        return self.user.__str__() + self.job_title.__str__()
+
+
+class Token(models.Model):
+    """
+    The default authorization token model.
+    """
+    key = models.CharField(_("Key"), max_length=40, primary_key=True)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, related_name='auth_token',
+        on_delete=models.CASCADE, verbose_name=_("User")
+    )
+    created = models.DateTimeField(_("Created"), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Token")
+        verbose_name_plural = _("Tokens")
+
+    def save(self, *args, **kwargs):
+        if not self.key:
+            self.key = self.generate_key()
+        return super(Token, self).save(*args, **kwargs)
+
+    @staticmethod
+    def generate_key():
+        return binascii.hexlify(os.urandom(20)).decode()
+
+    def __str__(self):
+        return self.key
 
 
 

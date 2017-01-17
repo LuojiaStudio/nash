@@ -150,7 +150,8 @@ class CheckedArticle(Article):
 
 class Tag(models.Model):
     name = models.CharField(max_length=50)
-    is_main_tag = models.BooleanField  # whether as a navigation item
+    is_main_tag = models.BooleanField(default=False)  # whether as a navigation item
+    is_source = models.BooleanField(default=False)  # e.g. computer science college -> true,  spot -> false
 
     def __str__(self):
         return self.name
